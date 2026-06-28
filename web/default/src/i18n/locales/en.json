@@ -4520,6 +4520,17 @@
     "Zero retention": "Zero retention",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Document": "文件",
+    "Ranking": "排行榜",
+    "History usage": "歷史使用情況",
+    "Request count": "請求次數",
+    "By model": "按模型",
+    "By model filter": "按模型篩選",
+    "Filter by username...": "按使用者名稱篩選...",
+    "Reward": "獎勵",
+    "Rewards": "獎勵",
+    "Referral": "推薦",
+    "Referral reward": "邀請獎勵"
   }
 }
