@@ -18,7 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import type { PlaygroundConfig, ParameterEnabled } from './types'
 
-// Message constants
 export const MESSAGE_ROLES = {
   USER: 'user',
   ASSISTANT: 'assistant',
@@ -32,18 +31,14 @@ export const MESSAGE_STATUS = {
   ERROR: 'error',
 } as const
 
-// API endpoints
 export const API_ENDPOINTS = {
   CHAT_COMPLETIONS: '/pg/chat/completions',
   USER_MODELS: '/api/user/models',
   USER_GROUPS: '/api/user/self/groups',
 } as const
 
-// Default group — uses 'default' as the safe fallback; auto-group is
-// only selected when the backend confirms it is available for the user.
 export const DEFAULT_GROUP = 'default' as const
 
-// Default configuration
 export const DEFAULT_CONFIG: PlaygroundConfig = {
   model: 'gpt-4o',
   group: DEFAULT_GROUP,
@@ -65,14 +60,13 @@ export const DEFAULT_PARAMETER_ENABLED: ParameterEnabled = {
   seed: false,
 }
 
-// Storage keys
 export const STORAGE_KEYS = {
   CONFIG: 'playground_config',
-  MESSAGES: 'playground_messages',
+  SESSIONS: 'playground_sessions',
+  ACTIVE_SESSION_ID: 'playground_active_session_id',
   PARAMETER_ENABLED: 'playground_parameter_enabled',
 } as const
 
-// Error messages
 export const ERROR_MESSAGES = {
   API_REQUEST_ERROR: 'Request error occurred',
   NETWORK_ERROR: 'Network connection failed or server not responding',
@@ -82,20 +76,18 @@ export const ERROR_MESSAGES = {
   INTERRUPTED: 'Generation was interrupted',
 } as const
 
-// Message action button styles
 export const MESSAGE_ACTION_BUTTON_STYLES = {
   BASE: 'size-7 text-muted-foreground hover:text-foreground',
   DELETE: 'size-7 text-muted-foreground hover:text-destructive',
   ICON: 'size-4',
 } as const
 
-// Message action labels
 export const MESSAGE_ACTION_LABELS = {
-  COPY: 'Copy',
-  COPIED: 'Copied!',
-  REGENERATE: 'Regenerate',
-  EDIT: 'Edit',
-  DELETE: 'Delete',
-  NO_CONTENT: 'No content to copy',
-  WAIT_GENERATION: 'Please wait for the current generation to complete',
+  COPY: '複製',
+  COPIED: '已複製',
+  REGENERATE: '重新產生',
+  EDIT: '編輯',
+  DELETE: '刪除',
+  NO_CONTENT: '目前沒有可複製的內容',
+  WAIT_GENERATION: '請先等目前產生完成',
 } as const

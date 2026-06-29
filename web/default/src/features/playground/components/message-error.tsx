@@ -17,7 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { AlertCircle, AlertTriangle, Settings } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -29,12 +28,7 @@ interface MessageErrorProps {
   className?: string
 }
 
-/**
- * Display error messages using Alert component
- * Following ai-elements pattern for error handling
- */
 export function MessageError({ message, className = '' }: MessageErrorProps) {
-  const { t } = useTranslation()
   const user = useAuthStore((s) => s.auth.user)
   const isAdmin = user?.role != null && user.role >= 10
 
@@ -42,14 +36,13 @@ export function MessageError({ message, className = '' }: MessageErrorProps) {
     return null
   }
 
-  const errorContent =
-    message.versions[0]?.content || 'An unknown error occurred'
+  const errorContent = message.versions[0]?.content || '發生未預期的錯誤'
 
   if (message.errorCode === 'model_price_error') {
     return (
       <Alert variant='default' className={className}>
         <AlertTriangle className='text-orange-500' />
-        <AlertTitle>{t('Model Price Not Configured')}</AlertTitle>
+        <AlertTitle>模型價格尚未設定</AlertTitle>
         <AlertDescription className='space-y-2'>
           <p>{errorContent}</p>
           {isAdmin && (
@@ -61,7 +54,7 @@ export function MessageError({ message, className = '' }: MessageErrorProps) {
               }
             >
               <Settings className='mr-1 h-3.5 w-3.5' />
-              {t('Go to Settings')}
+              前往設定
             </Button>
           )}
         </AlertDescription>
@@ -72,7 +65,7 @@ export function MessageError({ message, className = '' }: MessageErrorProps) {
   return (
     <Alert variant='destructive' className={className}>
       <AlertCircle />
-      <AlertTitle>{t('Error')}</AlertTitle>
+      <AlertTitle>錯誤</AlertTitle>
       <AlertDescription>{errorContent}</AlertDescription>
     </Alert>
   )

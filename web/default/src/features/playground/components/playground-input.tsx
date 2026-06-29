@@ -23,16 +23,9 @@ import {
   ImageIcon,
   ScreenShareIcon,
   CameraIcon,
-  GlobeIcon,
   SendIcon,
   SquareIcon,
-  BarChartIcon,
-  BoxIcon,
-  NotepadTextIcon,
-  CodeSquareIcon,
-  GraduationCapIcon,
 } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   DropdownMenu,
@@ -48,7 +41,6 @@ import {
   PromptInputTools,
   type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input'
-import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
 import { ModelGroupSelector } from '@/components/model-group-selector'
 import type { ModelOption, GroupOption } from '../types'
 
@@ -66,15 +58,6 @@ interface PlaygroundInputProps {
   onGroupChange: (value: string) => void
 }
 
-const suggestions = [
-  { icon: BarChartIcon, text: 'Analyze data', color: '#76d0eb' },
-  { icon: BoxIcon, text: 'Surprise me', color: '#76d0eb' },
-  { icon: NotepadTextIcon, text: 'Summarize text', color: '#ea8444' },
-  { icon: CodeSquareIcon, text: 'Code', color: '#6c71ff' },
-  { icon: GraduationCapIcon, text: 'Get advice', color: '#76d0eb' },
-  { icon: null, text: 'More' },
-]
-
 export function PlaygroundInput({
   onSubmit,
   onStop,
@@ -88,7 +71,6 @@ export function PlaygroundInput({
   groupValue,
   onGroupChange,
 }: PlaygroundInputProps) {
-  const { t } = useTranslation()
   const [text, setText] = useState('')
 
   const isModelSelectDisabled =
@@ -102,13 +84,9 @@ export function PlaygroundInput({
   }
 
   const handleFileAction = (action: string) => {
-    toast.info(t('Feature in development'), {
+    toast.info('附加功能尚未啟用', {
       description: action,
     })
-  }
-
-  const handleSuggestionClick = (suggestion: string) => {
-    onSubmit(suggestion)
   }
 
   return (
@@ -122,7 +100,7 @@ export function PlaygroundInput({
           className='px-5 md:text-base'
           disabled={disabled}
           onChange={(event) => setText(event.target.value)}
-          placeholder={t('Ask anything')}
+          placeholder='想問什麼都可以直接輸入...'
           value={text}
         />
 
@@ -139,47 +117,28 @@ export function PlaygroundInput({
                 }
               >
                 <PaperclipIcon size={16} />
-                <span className='hidden sm:inline'>{t('Attach')}</span>
-                <span className='sr-only sm:hidden'>{t('Attach')}</span>
+                <span className='hidden sm:inline'>附加</span>
+                <span className='sr-only sm:hidden'>附加</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align='start'>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('upload-file')}
-                >
+                <DropdownMenuItem onClick={() => handleFileAction('上傳檔案')}>
                   <FileIcon className='mr-2' size={16} />
-                  {t('Upload file')}
+                  上傳檔案
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('upload-photo')}
-                >
+                <DropdownMenuItem onClick={() => handleFileAction('上傳圖片')}>
                   <ImageIcon className='mr-2' size={16} />
-                  {t('Upload photo')}
+                  上傳圖片
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('take-screenshot')}
-                >
+                <DropdownMenuItem onClick={() => handleFileAction('分享螢幕')}>
                   <ScreenShareIcon className='mr-2' size={16} />
-                  {t('Take screenshot')}
+                  分享螢幕
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('take-photo')}
-                >
+                <DropdownMenuItem onClick={() => handleFileAction('拍照')}>
                   <CameraIcon className='mr-2' size={16} />
-                  {t('Take photo')}
+                  拍照
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <PromptInputButton
-              className='border font-medium'
-              disabled={disabled}
-              onClick={() => toast.info(t('Search feature in development'))}
-              variant='outline'
-            >
-              <GlobeIcon size={16} />
-              <span className='hidden sm:inline'>{t('Search')}</span>
-              <span className='sr-only sm:hidden'>{t('Search')}</span>
-            </PromptInputButton>
           </PromptInputTools>
 
           <div className='flex items-center gap-1.5 md:gap-2'>
@@ -200,8 +159,8 @@ export function PlaygroundInput({
                 variant='secondary'
               >
                 <SquareIcon className='fill-current' size={16} />
-                <span className='hidden sm:inline'>{t('Stop')}</span>
-                <span className='sr-only sm:hidden'>{t('Stop')}</span>
+                <span className='hidden sm:inline'>停止</span>
+                <span className='sr-only sm:hidden'>停止</span>
               </PromptInputButton>
             ) : (
               <PromptInputButton
@@ -211,29 +170,13 @@ export function PlaygroundInput({
                 variant='secondary'
               >
                 <SendIcon size={16} />
-                <span className='hidden sm:inline'>{t('Send')}</span>
-                <span className='sr-only sm:hidden'>{t('Send')}</span>
+                <span className='hidden sm:inline'>送出</span>
+                <span className='sr-only sm:hidden'>送出</span>
               </PromptInputButton>
             )}
           </div>
         </PromptInputFooter>
       </PromptInput>
-
-      <Suggestions>
-        {suggestions.map(({ icon: Icon, text, color }) => (
-          <Suggestion
-            className={`text-xs font-normal sm:text-sm ${
-              text === 'More' ? 'hidden sm:flex' : ''
-            }`}
-            key={text}
-            onClick={() => handleSuggestionClick(text)}
-            suggestion={text}
-          >
-            {Icon && <Icon size={16} style={{ color }} />}
-            {text}
-          </Suggestion>
-        ))}
-      </Suggestions>
     </div>
   )
 }

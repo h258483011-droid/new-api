@@ -216,6 +216,7 @@ func UpdateOption(c *gin.Context) {
 			return
 		}
 	case "theme.frontend":
+		option.Value = "default"
 		if option.Value != "default" && option.Value != "classic" {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,

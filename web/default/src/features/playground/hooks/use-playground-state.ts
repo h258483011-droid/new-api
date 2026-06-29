@@ -16,15 +16,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useCallback } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { nanoid } from 'nanoid'
 import { DEFAULT_CONFIG, DEFAULT_PARAMETER_ENABLED } from '../constants'
 import {
+  clearPlaygroundData,
+  createConversationSession,
+  deleteSession,
+  loadActiveSessionId,
   loadConfig,
-  saveConfig,
   loadParameterEnabled,
+  loadSessions,
+  saveActiveSessionId,
+  saveConfig,
   saveParameterEnabled,
-  loadMessages,
-  saveMessages,
+  saveSessions,
+  updateSessionMessages,
+  updateSessionPinned,
+  updateSessionTitle,
 } from '../lib'
 import type {
   Message,
@@ -32,13 +41,51 @@ import type {
   ParameterEnabled,
   ModelOption,
   GroupOption,
+  PlaygroundSession,
 } from '../types'
+
+function getInitialSessionState() {
+  const sessions = loadSessions()
+  const savedActiveSessionId = loadActiveSessionId()
+  const activeSessionId =
+    (savedActiveSessionId &&
+      sessions.some((session) => session.id === savedActiveSessionId) &&
+      savedActiveSessionId) ||
+    sessions[0]?.id ||
+    createConversationSession().id
+
+  return {
+    sessions,
+    activeSessionId,
+  }
+}
+
+function sortSessionsByRecency(sessions: PlaygroundSession[]) {
+  return [...sessions].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+    if (b.updatedAt !== a.updatedAt) return b.updatedAt - a.updatedAt
+    return b.createdAt - a.createdAt
+  })
+}
+
+function ensureActiveSession(
+  sessions: PlaygroundSession[],
+  activeSessionId: string
+) {
+  const activeSession =
+    sessions.find((session) => session.id === activeSessionId) ?? sessions[0]
+
+  if (activeSession) {
+    return activeSession
+  }
+
+  return createConversationSession()
+}
 
 /**
  * Main state management hook for playground
  */
 export function usePlaygroundState() {
-  // Load initial state from localStorage
   const [config, setConfig] = useState<PlaygroundConfig>(() => {
     const savedConfig = loadConfig()
     return { ...DEFAULT_CONFIG, ...savedConfig }
@@ -51,14 +98,32 @@ export function usePlaygroundState() {
     }
   )
 
-  const [messages, setMessages] = useState<Message[]>(() => {
-    return loadMessages() || []
-  })
-
+  const initialSessionState = useMemo(() => getInitialSessionState(), [])
+  const [sessions, setSessions] = useState<PlaygroundSession[]>(
+    initialSessionState.sessions
+  )
+  const [activeSessionId, setActiveSessionId] = useState<string>(
+    initialSessionState.activeSessionId
+  )
   const [models, setModels] = useState<ModelOption[]>([])
   const [groups, setGroups] = useState<GroupOption[]>([])
 
-  // Update config with automatic save
+  const activeSession = useMemo(
+    () => ensureActiveSession(sessions, activeSessionId),
+    [sessions, activeSessionId]
+  )
+
+  const persistSessions = useCallback(
+    (updater: (prev: PlaygroundSession[]) => PlaygroundSession[]) => {
+      setSessions((prev) => {
+        const next = updater(prev)
+        saveSessions(next)
+        return next
+      })
+    },
+    []
+  )
+
   const updateConfig = useCallback(
     <K extends keyof PlaygroundConfig>(key: K, value: PlaygroundConfig[K]) => {
       setConfig((prev) => {
@@ -70,7 +135,6 @@ export function usePlaygroundState() {
     []
   )
 
-  // Update parameter enabled with automatic save
   const updateParameterEnabled = useCallback(
     (key: keyof ParameterEnabled, value: boolean) => {
       setParameterEnabled((prev) => {
@@ -82,25 +146,81 @@ export function usePlaygroundState() {
     []
   )
 
-  // Update messages with automatic save
   const updateMessages = useCallback(
     (updater: Message[] | ((prev: Message[]) => Message[])) => {
-      setMessages((prev) => {
-        const newMessages =
-          typeof updater === 'function' ? updater(prev) : updater
-        saveMessages(newMessages)
-        return newMessages
+      setSessions((prevSessions) => {
+        const current = ensureActiveSession(prevSessions, activeSessionId)
+        const nextMessages =
+          typeof updater === 'function' ? updater(current.messages) : updater
+        const nextSessions = updateSessionMessages(
+          prevSessions,
+          current.id,
+          nextMessages
+        )
+        saveSessions(nextSessions)
+        return nextSessions
       })
     },
-    []
+    [activeSessionId]
   )
 
-  // Clear all messages
+  const createNewConversation = useCallback(() => {
+    const session = createConversationSession()
+    setSessions((prev) => {
+      const next = sortSessionsByRecency([session, ...prev])
+      saveSessions(next)
+      return next
+    })
+    setActiveSessionId(session.id)
+    saveActiveSessionId(session.id)
+  }, [])
+
+  const selectConversation = useCallback((sessionId: string) => {
+    setActiveSessionId(sessionId)
+    saveActiveSessionId(sessionId)
+  }, [])
+
+  const renameConversation = useCallback(
+    (sessionId: string, title: string) => {
+      persistSessions((prev) => updateSessionTitle(prev, sessionId, title))
+    },
+    [persistSessions]
+  )
+
+  const togglePinConversation = useCallback(
+    (sessionId: string) => {
+      persistSessions((prev) => {
+        const target = prev.find((session) => session.id === sessionId)
+        if (!target) return prev
+        const next = updateSessionPinned(prev, sessionId, !target.pinned)
+        return sortSessionsByRecency(next)
+      })
+    },
+    [persistSessions]
+  )
+
+  const removeConversation = useCallback(
+    (sessionId: string) => {
+      setSessions((prev) => {
+        const next = deleteSession(prev, sessionId)
+        saveSessions(next)
+
+        if (sessionId === activeSessionId) {
+          const fallback = next[0]?.id ?? nanoid()
+          setActiveSessionId(fallback)
+          saveActiveSessionId(fallback)
+        }
+
+        return next
+      })
+    },
+    [activeSessionId]
+  )
+
   const clearMessages = useCallback(() => {
     updateMessages([])
   }, [updateMessages])
 
-  // Reset config to defaults
   const resetConfig = useCallback(() => {
     setConfig(DEFAULT_CONFIG)
     setParameterEnabled(DEFAULT_PARAMETER_ENABLED)
@@ -108,11 +228,27 @@ export function usePlaygroundState() {
     saveParameterEnabled(DEFAULT_PARAMETER_ENABLED)
   }, [])
 
+  const clearAllPlaygroundData = useCallback(() => {
+    clearPlaygroundData()
+    const freshSession = createConversationSession()
+    setConfig(DEFAULT_CONFIG)
+    setParameterEnabled(DEFAULT_PARAMETER_ENABLED)
+    setSessions([freshSession])
+    setActiveSessionId(freshSession.id)
+    saveConfig(DEFAULT_CONFIG)
+    saveParameterEnabled(DEFAULT_PARAMETER_ENABLED)
+    saveSessions([freshSession])
+    saveActiveSessionId(freshSession.id)
+  }, [])
+
   return {
     // State
     config,
     parameterEnabled,
-    messages,
+    messages: activeSession.messages,
+    sessions,
+    activeSessionId,
+    activeSession,
     models,
     groups,
 
@@ -126,5 +262,11 @@ export function usePlaygroundState() {
     updateMessages,
     clearMessages,
     resetConfig,
+    createNewConversation,
+    selectConversation,
+    renameConversation,
+    togglePinConversation,
+    removeConversation,
+    clearAllPlaygroundData,
   }
 }
