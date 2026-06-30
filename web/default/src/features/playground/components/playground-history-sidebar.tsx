@@ -37,8 +37,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { cn } from '@/lib/utils'
-import { getCurrentVersion } from '../lib'
-import type { Message, PlaygroundSession } from '../types'
+import type { PlaygroundSession } from '../types'
 
 type PlaygroundHistorySidebarProps = {
   sessions: PlaygroundSession[]
@@ -48,20 +47,6 @@ type PlaygroundHistorySidebarProps = {
   onTogglePinConversation: (sessionId: string) => void
   onRenameConversation: (sessionId: string, title: string) => void
   onDeleteConversation: (sessionId: string) => void
-}
-
-function formatPreview(messages: Message[]): string {
-  const lastContent = [...messages]
-    .reverse()
-    .map((message) => getCurrentVersion(message).content.trim())
-    .find(Boolean)
-
-  if (!lastContent) return '尚無內容'
-
-  const singleLine = lastContent.replace(/\s+/g, ' ')
-  return singleLine.length > 28
-    ? `${singleLine.slice(0, 28).trimEnd()}…`
-    : singleLine
 }
 
 function formatRelativeTime(timestamp: number): string {
@@ -168,9 +153,6 @@ export function PlaygroundHistorySidebar({
                         <Pin className='text-muted-foreground size-3 shrink-0' />
                       )}
                     </div>
-                    <p className='text-muted-foreground line-clamp-1 text-[11px] leading-4'>
-                      {formatPreview(session.messages)}
-                    </p>
                   </button>
 
                   <span className='text-muted-foreground shrink-0 text-[10px] tabular-nums'>
@@ -235,9 +217,7 @@ export function PlaygroundHistorySidebar({
         <DialogContent className='sm:max-w-md'>
           <DialogHeader>
             <DialogTitle>重新命名對話</DialogTitle>
-            <DialogDescription>
-              幫這段對話取一個好記的名稱。
-            </DialogDescription>
+            <DialogDescription>幫這段對話取一個好記的名稱。</DialogDescription>
           </DialogHeader>
           <Input
             autoFocus

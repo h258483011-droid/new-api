@@ -65,9 +65,7 @@ export function deriveConversationTitle(messages: Message[]): string {
       getCurrentVersion(message).content.trim()
   )
 
-  if (!firstUserMessage) {
-    return '新對話'
-  }
+  if (!firstUserMessage) return '新對話'
 
   return truncateTitle(getCurrentVersion(firstUserMessage).content)
 }
@@ -98,12 +96,8 @@ function normalizeSession(session: Partial<PlaygroundSession>): PlaygroundSessio
 
 function sortSessions(sessions: PlaygroundSession[]): PlaygroundSession[] {
   return [...sessions].sort((a, b) => {
-    if (a.pinned !== b.pinned) {
-      return a.pinned ? -1 : 1
-    }
-    if (b.updatedAt !== a.updatedAt) {
-      return b.updatedAt - a.updatedAt
-    }
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+    if (b.updatedAt !== a.updatedAt) return b.updatedAt - a.updatedAt
     return b.createdAt - a.createdAt
   })
 }
