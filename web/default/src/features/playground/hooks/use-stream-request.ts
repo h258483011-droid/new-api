@@ -80,7 +80,7 @@ export function useStreamRequest() {
         } catch (error) {
           // eslint-disable-next-line no-console
           console.error('Failed to parse SSE message:', error)
-          handleError(ERROR_MESSAGES.PARSE_ERROR)
+          handleError(ERROR_MESSAGES.PARSE_ERROR, 'parse_error')
         }
       })
 
@@ -104,6 +104,9 @@ export function useStreamRequest() {
               // not JSON, use raw string
             }
           }
+          if (!errorCode) {
+            errorCode = 'stream_interrupted'
+          }
           handleError(errorMessage, errorCode)
         }
       })
@@ -118,7 +121,10 @@ export function useStreamRequest() {
             status !== undefined &&
             status !== 200
           ) {
-            handleError(`HTTP ${status}: ${ERROR_MESSAGES.CONNECTION_CLOSED}`)
+            handleError(
+              `HTTP ${status}: ${ERROR_MESSAGES.CONNECTION_CLOSED}`,
+              `http_${status}`
+            )
           }
         }
       )
@@ -128,7 +134,7 @@ export function useStreamRequest() {
       } catch (error: unknown) {
         // eslint-disable-next-line no-console
         console.error('Failed to start SSE stream:', error)
-        onError(ERROR_MESSAGES.STREAM_START_ERROR)
+        onError(ERROR_MESSAGES.STREAM_START_ERROR, 'stream_start_error')
         sseSourceRef.current = null
       }
     },

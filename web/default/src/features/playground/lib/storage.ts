@@ -24,11 +24,23 @@ import type {
   PlaygroundConfig,
   PlaygroundSession,
 } from '../types'
+import { getUserId } from '@/features/auth/lib/storage'
 import { getCurrentVersion, sanitizeMessagesOnLoad } from './message-utils'
 
 const LEGACY_STORAGE_KEYS = {
   MESSAGES: 'playground_messages',
 } as const
+
+const STORAGE_NAMESPACE_PREFIX = 'playground'
+
+function getStorageNamespace(): string {
+  const userId = getUserId()
+  return userId ? `${STORAGE_NAMESPACE_PREFIX}:uid:${userId}` : `${STORAGE_NAMESPACE_PREFIX}:guest`
+}
+
+function makeNamespacedKey(key: string): string {
+  return `${getStorageNamespace()}:${key}`
+}
 
 function readJson<T>(key: string): T | null {
   try {
@@ -119,12 +131,15 @@ export function createConversationSession(
 }
 
 export function loadSessions(): PlaygroundSession[] {
-  const rawSessions = readJson<Partial<PlaygroundSession>[]>(STORAGE_KEYS.SESSIONS)
+  migrateLegacyPlaygroundStorage()
+
+  const namespacedSessionsKey = makeNamespacedKey(STORAGE_KEYS.SESSIONS)
+
+  const rawSessions = readJson<Partial<PlaygroundSession>[]>(namespacedSessionsKey)
 
   if (Array.isArray(rawSessions) && rawSessions.length > 0) {
     const sessions = rawSessions.map((session) => normalizeSession(session))
     const sorted = sortSessions(sessions)
-    saveSessions(sorted)
     return sorted
   }
 
@@ -146,12 +161,14 @@ export function loadSessions(): PlaygroundSession[] {
 }
 
 export function saveSessions(sessions: PlaygroundSession[]): void {
-  writeJson(STORAGE_KEYS.SESSIONS, sortSessions(sessions))
+  writeJson(makeNamespacedKey(STORAGE_KEYS.SESSIONS), sortSessions(sessions))
 }
 
 export function loadActiveSessionId(): string | null {
+  migrateLegacyPlaygroundStorage()
+
   try {
-    return localStorage.getItem(STORAGE_KEYS.ACTIVE_SESSION_ID)
+    return localStorage.getItem(makeNamespacedKey(STORAGE_KEYS.ACTIVE_SESSION_ID))
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to load active session id:', error)
@@ -161,7 +178,7 @@ export function loadActiveSessionId(): string | null {
 
 export function saveActiveSessionId(sessionId: string): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.ACTIVE_SESSION_ID, sessionId)
+    localStorage.setItem(makeNamespacedKey(STORAGE_KEYS.ACTIVE_SESSION_ID), sessionId)
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to save active session id:', error)
@@ -169,29 +186,33 @@ export function saveActiveSessionId(sessionId: string): void {
 }
 
 export function loadConfig(): Partial<PlaygroundConfig> {
-  return readJson<Partial<PlaygroundConfig>>(STORAGE_KEYS.CONFIG) || {}
+  migrateLegacyPlaygroundStorage()
+
+  return readJson<Partial<PlaygroundConfig>>(makeNamespacedKey(STORAGE_KEYS.CONFIG)) || {}
 }
 
 export function saveConfig(config: Partial<PlaygroundConfig>): void {
-  writeJson(STORAGE_KEYS.CONFIG, config)
+  writeJson(makeNamespacedKey(STORAGE_KEYS.CONFIG), config)
 }
 
 export function loadParameterEnabled(): Partial<ParameterEnabled> {
-  return readJson<Partial<ParameterEnabled>>(STORAGE_KEYS.PARAMETER_ENABLED) || {}
+  migrateLegacyPlaygroundStorage()
+
+  return readJson<Partial<ParameterEnabled>>(makeNamespacedKey(STORAGE_KEYS.PARAMETER_ENABLED)) || {}
 }
 
 export function saveParameterEnabled(
   parameterEnabled: Partial<ParameterEnabled>
 ): void {
-  writeJson(STORAGE_KEYS.PARAMETER_ENABLED, parameterEnabled)
+  writeJson(makeNamespacedKey(STORAGE_KEYS.PARAMETER_ENABLED), parameterEnabled)
 }
 
 export function clearPlaygroundData(): void {
   try {
-    localStorage.removeItem(STORAGE_KEYS.CONFIG)
-    localStorage.removeItem(STORAGE_KEYS.PARAMETER_ENABLED)
-    localStorage.removeItem(STORAGE_KEYS.SESSIONS)
-    localStorage.removeItem(STORAGE_KEYS.ACTIVE_SESSION_ID)
+    localStorage.removeItem(makeNamespacedKey(STORAGE_KEYS.CONFIG))
+    localStorage.removeItem(makeNamespacedKey(STORAGE_KEYS.PARAMETER_ENABLED))
+    localStorage.removeItem(makeNamespacedKey(STORAGE_KEYS.SESSIONS))
+    localStorage.removeItem(makeNamespacedKey(STORAGE_KEYS.ACTIVE_SESSION_ID))
     localStorage.removeItem(LEGACY_STORAGE_KEYS.MESSAGES)
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -208,21 +229,65 @@ export function updateSessionMessages(
   const updated = sessions.map((session) => {
     if (session.id !== sessionId) return session
 
-    const sanitizedMessages = sanitizeMessagesOnLoad(messages)
     const shouldAutoTitle =
       session.title === '新對話' || !session.title.trim().length
     const nextTitle = shouldAutoTitle
-      ? deriveConversationTitle(sanitizedMessages)
+      ? deriveConversationTitle(messages)
       : session.title
 
     return {
       ...session,
       title: nextTitle,
       updatedAt: now,
-      messages: sanitizedMessages,
+      // Runtime updates must preserve in-flight streaming messages.
+      // Only legacy/load-time recovery should sanitize incomplete responses.
+      messages,
     }
   })
   return sortSessions(updated)
+}
+
+export function migrateLegacyPlaygroundStorage(): void {
+  const namespacedSessionsKey = makeNamespacedKey(STORAGE_KEYS.SESSIONS)
+  const hasNamespacedSessions = readJson<unknown>(namespacedSessionsKey)
+  if (hasNamespacedSessions) {
+    return
+  }
+
+  const legacySessions = readJson<unknown>(STORAGE_KEYS.SESSIONS)
+  const legacyActiveSessionId = readJson<unknown>(
+    STORAGE_KEYS.ACTIVE_SESSION_ID
+  )
+  const legacyConfig = readJson<unknown>(STORAGE_KEYS.CONFIG)
+  const legacyParameterEnabled = readJson<unknown>(
+    STORAGE_KEYS.PARAMETER_ENABLED
+  )
+
+  if (legacySessions !== null) {
+    writeJson(namespacedSessionsKey, legacySessions)
+    localStorage.removeItem(STORAGE_KEYS.SESSIONS)
+  }
+
+  if (legacyActiveSessionId !== null) {
+    writeJson(
+      makeNamespacedKey(STORAGE_KEYS.ACTIVE_SESSION_ID),
+      legacyActiveSessionId
+    )
+    localStorage.removeItem(STORAGE_KEYS.ACTIVE_SESSION_ID)
+  }
+
+  if (legacyConfig !== null) {
+    writeJson(makeNamespacedKey(STORAGE_KEYS.CONFIG), legacyConfig)
+    localStorage.removeItem(STORAGE_KEYS.CONFIG)
+  }
+
+  if (legacyParameterEnabled !== null) {
+    writeJson(
+      makeNamespacedKey(STORAGE_KEYS.PARAMETER_ENABLED),
+      legacyParameterEnabled
+    )
+    localStorage.removeItem(STORAGE_KEYS.PARAMETER_ENABLED)
+  }
 }
 
 export function updateSessionTitle(

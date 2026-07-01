@@ -68,12 +68,12 @@ export const STORAGE_KEYS = {
 } as const
 
 export const ERROR_MESSAGES = {
-  API_REQUEST_ERROR: 'Request error occurred',
+  API_REQUEST_ERROR: '請求發生錯誤',
   NETWORK_ERROR: 'Network connection failed or server not responding',
   PARSE_ERROR: 'Error parsing response data',
   STREAM_START_ERROR: 'Error establishing connection',
   CONNECTION_CLOSED: 'Connection closed',
-  INTERRUPTED: 'Generation was interrupted',
+  INTERRUPTED: '回應已中斷',
 } as const
 
 export const MESSAGE_ACTION_BUTTON_STYLES = {

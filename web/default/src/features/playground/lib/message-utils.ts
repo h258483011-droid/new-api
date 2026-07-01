@@ -347,6 +347,7 @@ export function sanitizeMessagesOnLoad(messages: Message[]): Message[] {
           ),
           status: MESSAGE_STATUS.ERROR,
           isReasoningStreaming: false,
+          errorCode: 'stream_incomplete',
         }
 
   const result = [...messages]

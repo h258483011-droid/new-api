@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { create } from 'zustand'
+import { migrateLegacyPlaygroundStorage } from '@/features/playground/lib/storage'
 
 export type UserPermissions = {
   sidebar_settings?: boolean
@@ -93,6 +94,7 @@ export const useAuthStore = create<AuthState>()((set) => {
       reset: () =>
         set((state) => {
           if (typeof window !== 'undefined') {
+            migrateLegacyPlaygroundStorage()
             window.localStorage.removeItem('user')
           }
           return {
