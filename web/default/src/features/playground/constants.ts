@@ -69,10 +69,10 @@ export const STORAGE_KEYS = {
 
 export const ERROR_MESSAGES = {
   API_REQUEST_ERROR: '請求發生錯誤',
-  NETWORK_ERROR: 'Network connection failed or server not responding',
-  PARSE_ERROR: 'Error parsing response data',
-  STREAM_START_ERROR: 'Error establishing connection',
-  CONNECTION_CLOSED: 'Connection closed',
+  NETWORK_ERROR: '網路連線失敗或伺服器未回應',
+  PARSE_ERROR: '回應資料解析失敗',
+  STREAM_START_ERROR: '建立串流連線失敗',
+  CONNECTION_CLOSED: '連線已關閉',
   INTERRUPTED: '回應已中斷',
 } as const
 
